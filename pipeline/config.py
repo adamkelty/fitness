@@ -17,3 +17,6 @@ GOLD_DIR = DATA_DIR / "gold"
 # Per-invocation cap on Strava read calls, kept under the 100 reads / 15 min
 # limit so a large first backfill stops cleanly and resumes on the next run.
 READ_BUDGET = 90
+
+# Local timezone for day-level grouping (sleep nights, daily metrics).
+LOCAL_TZ = "America/Indiana/Indianapolis"
