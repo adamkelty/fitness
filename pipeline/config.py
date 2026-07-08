@@ -13,3 +13,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 BRONZE_DIR = DATA_DIR / "bronze"
 SILVER_DIR = DATA_DIR / "silver"
 GOLD_DIR = DATA_DIR / "gold"
+
+# Per-invocation cap on Strava read calls, kept under the 100 reads / 15 min
+# limit so a large first backfill stops cleanly and resumes on the next run.
+READ_BUDGET = 90

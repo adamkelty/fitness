@@ -11,3 +11,6 @@ wheels/
 
 # Pipeline output
 data/
+
+# macOS
+.DS_Store
