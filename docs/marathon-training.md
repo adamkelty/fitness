@@ -61,7 +61,7 @@ Miles run within ±15s of the 7:50 MP target, from per-mile splits. Watch this c
 | Date | Long run (mi) | MP miles | MP splits |
 |---|---:|---:|---|
 | 2026-07-05 | 16.0 | 5 | 7:59, 7:55, 7:47, 7:46, 7:36 |
-| 2026-06-28 | 17.1 | 0 | — |
+| 2026-06-28 | 17.1 | ? | ⚠️ _unreliable — 36% distance missing (GPS/import gap)_ |
 | 2026-06-21 | 16.4 | 0 | — |
 | 2026-06-07 | 13.1 | 0 | — |
 | 2026-05-30 | 13.2 | 1 | 7:37 |

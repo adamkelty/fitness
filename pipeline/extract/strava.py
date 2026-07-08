@@ -60,6 +60,10 @@ class StravaReader:
             raise RateLimitError(path)
         response.raise_for_status()
 
+        # The streams endpoint omits the usage header, so count every read
+        # locally and prefer the server's authoritative number when present.
+        self.window_used += 1
+        self.day_used += 1
         usage = response.headers.get("x-readratelimit-usage")
         if usage:
             self.window_used, self.day_used = (int(x) for x in usage.split(","))

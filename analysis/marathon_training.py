@@ -89,18 +89,27 @@ def load_splits() -> pd.DataFrame:
 
 def mp_miles_by_long_run(runs: pd.DataFrame, splits: pd.DataFrame) -> pd.DataFrame:
     """For each long run, count the per-mile splits that land in the marathon-
-    pace band. Runs without splits yet (backfill pending) are flagged."""
+    pace band.
+
+    Some Apple-Health-imported runs have a GPS/import gap where Strava's splits
+    (and streams) lose distance mid-run. When the splits don't reconcile with the
+    run's total distance we can't trust the MP count, so those are flagged
+    unreliable rather than reported as zero.
+    """
     long_runs = runs[runs["distance_mi"] >= LONG_RUN_MI]
     rows = []
     for _, lr in long_runs.iterrows():
         s = splits[splits["activity_id"] == lr["activity_id"]]
         mp = s[s["pace_min_per_mi"].between(MP_LOW, MP_HIGH)]
+        missing_mi = lr["distance_mi"] - s["distance_mi"].sum()
         rows.append(
             {
                 "date": lr["date"],
                 "distance_mi": lr["distance_mi"],
                 "mp_miles": len(mp),
                 "has_splits": len(s) > 0,
+                "reliable": missing_mi <= 0.5,
+                "pct_missing": max(0.0, missing_mi / lr["distance_mi"] * 100),
                 "mp_paces": [format_pace(p) for p in mp["pace_min_per_mi"]],
             }
         )
@@ -176,13 +185,16 @@ def render_report(runs: pd.DataFrame, weekly: pd.DataFrame, mp_long: pd.DataFram
     lines.append("|---|---:|---:|---|")
     for _, r in mp_long.iterrows():
         if not r["has_splits"]:
-            paces = "_splits pending_"
+            mp_count, paces = "—", "_splits pending_"
+        elif not r["reliable"]:
+            mp_count = "?"
+            paces = f"⚠️ _unreliable — {r['pct_missing']:.0f}% distance missing (GPS/import gap)_"
         elif r["mp_paces"]:
-            paces = ", ".join(r["mp_paces"])
+            mp_count, paces = r["mp_miles"], ", ".join(r["mp_paces"])
         else:
-            paces = "—"
+            mp_count, paces = r["mp_miles"], "—"
         lines.append(
-            f"| {r['date'].date()} | {r['distance_mi']:.1f} | {r['mp_miles']} | {paces} |"
+            f"| {r['date'].date()} | {r['distance_mi']:.1f} | {mp_count} | {paces} |"
         )
     lines.append("")
     lines.append("## Recent runs")
