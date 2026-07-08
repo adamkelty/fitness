@@ -1,6 +1,6 @@
 # Marathon Training — Marquette 2026
 
-_Last updated: 2026-07-07_
+_Last updated: 2026-07-08_
 
 ## Goal
 
