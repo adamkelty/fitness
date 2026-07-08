@@ -76,7 +76,6 @@ def build_fact_activity(
             "max_speed_kmh",
             "avg_heartrate",
             "max_heartrate",
-            "calories",
             "suffer_score",
             "kudos_count",
             "achievement_count",

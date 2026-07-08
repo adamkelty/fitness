@@ -15,7 +15,6 @@ ACTIVITY_COLUMNS = {
     "max_speed": "max_speed_mps",
     "average_heartrate": "avg_heartrate",
     "max_heartrate": "max_heartrate",
-    "calories": "calories",
     "suffer_score": "suffer_score",
     "kudos_count": "kudos_count",
     "achievement_count": "achievement_count",
