@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from pipeline.config import GOLD_DIR
+from pipeline.config import GOLD_DIR, SILVER_DIR
 
 MILES_PER_KM = 0.621371
 FEET_PER_METER = 3.28084
@@ -20,6 +20,12 @@ LONG_RUN_MI = 10  # threshold for what counts as a long run
 # Goal: finish under 3:30. Target race pace ~7:40 min/mi.
 GOAL_PACE_MIN_PER_MI = 7 + 40 / 60
 SUB_330_PACE_MIN_PER_MI = (3 * 60 + 30) / MARATHON_MI
+
+# Marathon-pace work inside long runs: user currently targets ~7:50/mi.
+# Count a split as an MP mile if it lands within ±15s of that target.
+MP_TARGET_MIN_PER_MI = 7 + 50 / 60
+MP_BAND = 15 / 60
+MP_LOW, MP_HIGH = MP_TARGET_MIN_PER_MI - MP_BAND, MP_TARGET_MIN_PER_MI + MP_BAND
 
 REPORT_PATH = Path(__file__).resolve().parent.parent / "docs" / "marathon-training.md"
 
@@ -74,7 +80,34 @@ def weekly_summary(runs: pd.DataFrame) -> pd.DataFrame:
     return weekly.reset_index()
 
 
-def render_report(runs: pd.DataFrame, weekly: pd.DataFrame) -> str:
+def load_splits() -> pd.DataFrame:
+    path = SILVER_DIR / "splits.parquet"
+    if not path.exists():
+        return pd.DataFrame(columns=["activity_id", "mile", "pace_min_per_mi"])
+    return pd.read_parquet(path)
+
+
+def mp_miles_by_long_run(runs: pd.DataFrame, splits: pd.DataFrame) -> pd.DataFrame:
+    """For each long run, count the per-mile splits that land in the marathon-
+    pace band. Runs without splits yet (backfill pending) are flagged."""
+    long_runs = runs[runs["distance_mi"] >= LONG_RUN_MI]
+    rows = []
+    for _, lr in long_runs.iterrows():
+        s = splits[splits["activity_id"] == lr["activity_id"]]
+        mp = s[s["pace_min_per_mi"].between(MP_LOW, MP_HIGH)]
+        rows.append(
+            {
+                "date": lr["date"],
+                "distance_mi": lr["distance_mi"],
+                "mp_miles": len(mp),
+                "has_splits": len(s) > 0,
+                "mp_paces": [format_pace(p) for p in mp["pace_min_per_mi"]],
+            }
+        )
+    return pd.DataFrame(rows).sort_values("date", ascending=False)
+
+
+def render_report(runs: pd.DataFrame, weekly: pd.DataFrame, mp_long: pd.DataFrame) -> str:
     total_mi = runs["distance_mi"].sum()
     longest = runs.loc[runs["distance_mi"].idxmax()]
     lines = []
@@ -132,6 +165,26 @@ def render_report(runs: pd.DataFrame, weekly: pd.DataFrame) -> str:
             f"{r['elev_ft_per_mi']:.0f} | {avg_hr} |"
         )
     lines.append("")
+    lines.append("## Marathon-pace miles in long runs")
+    lines.append("")
+    lines.append(
+        f"Miles run within ±{round(MP_BAND * 60)}s of the {format_pace(MP_TARGET_MIN_PER_MI)}"
+        " MP target, from per-mile splits. Watch this count trend up as the build progresses."
+    )
+    lines.append("")
+    lines.append("| Date | Long run (mi) | MP miles | MP splits |")
+    lines.append("|---|---:|---:|---|")
+    for _, r in mp_long.iterrows():
+        if not r["has_splits"]:
+            paces = "_splits pending_"
+        elif r["mp_paces"]:
+            paces = ", ".join(r["mp_paces"])
+        else:
+            paces = "—"
+        lines.append(
+            f"| {r['date'].date()} | {r['distance_mi']:.1f} | {r['mp_miles']} | {paces} |"
+        )
+    lines.append("")
     lines.append("## Recent runs")
     lines.append("")
     lines.append("| Date | Miles | Time (min) | Pace | Elev (ft) | Avg HR |")
@@ -150,8 +203,9 @@ def render_report(runs: pd.DataFrame, weekly: pd.DataFrame) -> str:
 def main() -> None:
     runs = load_runs_2026()
     weekly = weekly_summary(runs)
+    mp_long = mp_miles_by_long_run(runs, load_splits())
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(render_report(runs, weekly))
+    REPORT_PATH.write_text(render_report(runs, weekly, mp_long))
     print(f"Wrote {REPORT_PATH.relative_to(Path.cwd())}")
     print(f"{len(runs)} runs, {runs['distance_mi'].sum():.1f} mi in 2026")
 

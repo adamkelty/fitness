@@ -54,6 +54,20 @@ Elevation matters here — Marquette long runs carry real climbing.
 | 2026-05-25 | 10.0 | 9:16 | 461 | 46 | 157 |
 | 2026-05-17 | 10.1 | 9:16 | 280 | 28 | 152 |
 
+## Marathon-pace miles in long runs
+
+Miles run within ±15s of the 7:50 MP target, from per-mile splits. Watch this count trend up as the build progresses.
+
+| Date | Long run (mi) | MP miles | MP splits |
+|---|---:|---:|---|
+| 2026-07-05 | 16.0 | 5 | 7:59, 7:55, 7:47, 7:46, 7:36 |
+| 2026-06-28 | 17.1 | 0 | — |
+| 2026-06-21 | 16.4 | 0 | — |
+| 2026-06-07 | 13.1 | 0 | — |
+| 2026-05-30 | 13.2 | 1 | 7:37 |
+| 2026-05-25 | 10.0 | 0 | — |
+| 2026-05-17 | 10.1 | 0 | — |
+
 ## Recent runs
 
 | Date | Miles | Time (min) | Pace | Elev (ft) | Avg HR |
