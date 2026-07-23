@@ -1,0 +1,311 @@
+<title>Marathon Readiness — Marquette 2026</title>
+<style>
+  :root {
+    --bg: #f4f7f8; --surface: #ffffff; --surface-2: #f0f4f5;
+    --ink: #182230; --muted: #64707f; --faint: #9aa6b3; --line: #e4eaef;
+    --accent: #17897a; --accent-soft: #d6ece8;
+    --warn: #d9663d; --plan: #b79a58; --good: #17897a;
+    --shadow: 0 1px 2px rgba(20,30,40,.06), 0 8px 24px rgba(20,30,40,.05);
+    --teal: #1f9e8c; --coral: #e07a52; --gold: #c2a765;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e141a; --surface: #161e27; --surface-2: #1b2530;
+      --ink: #e8eef4; --muted: #93a0b0; --faint: #5d6a78; --line: #232e3a;
+      --accent: #2fb6a3; --accent-soft: #16302d;
+      --warn: #ef8a63; --plan: #cdb680; --good: #2fb6a3;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+      --teal: #2fb6a3; --coral: #ef8a63; --gold: #cdb680;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f7f8; --surface: #ffffff; --surface-2: #f0f4f5;
+    --ink: #182230; --muted: #64707f; --faint: #9aa6b3; --line: #e4eaef;
+    --accent: #17897a; --accent-soft: #d6ece8; --warn: #d9663d; --plan: #b79a58; --good: #17897a;
+    --teal: #1f9e8c; --coral: #e07a52; --gold: #c2a765;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e141a; --surface: #161e27; --surface-2: #1b2530;
+    --ink: #e8eef4; --muted: #93a0b0; --faint: #5d6a78; --line: #232e3a;
+    --accent: #2fb6a3; --accent-soft: #16302d; --warn: #ef8a63; --plan: #cdb680; --good: #2fb6a3;
+    --teal: #2fb6a3; --coral: #ef8a63; --gold: #cdb680;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 20px; margin-bottom: 6px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 600; color: var(--muted); }
+  h1 { font-size: clamp(24px, 4vw, 34px); font-weight: 800; letter-spacing: -.02em; margin: 2px 0 0; text-wrap: balance; }
+  .count { margin-left: auto; text-align: right; }
+  .count .big { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: var(--accent); }
+  .count .lbl { font-size: 12px; color: var(--muted); }
+  .toggle { border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+    border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+  .toggle:hover { color: var(--ink); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 22px; }
+  .chip { font-size: 12.5px; padding: 5px 11px; border-radius: 999px; background: var(--surface);
+    border: 1px solid var(--line); color: var(--muted); }
+  .chip b { color: var(--ink); font-weight: 700; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 26px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 15px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--faint); }
+  .kpi.good::before { background: var(--good); }
+  .kpi.warn::before { background: var(--warn); }
+  .kpi .k-label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .kpi .k-value { font-size: 27px; font-weight: 800; letter-spacing: -.02em; margin: 3px 0 1px; }
+  .kpi .k-sub { font-size: 12px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 10px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0; font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; }
+  .card .csub { font-size: 12px; color: var(--muted); margin: 2px 0 8px; }
+  svg { width: 100%; height: auto; display: block; }
+  text { font-family: system-ui, sans-serif; }
+  .ax { fill: var(--muted); font-size: 11px; }
+  .axnum { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .grid-l { stroke: var(--line); stroke-width: 1; }
+  .zero-l { stroke: var(--faint); stroke-width: 1; }
+  .ref-l { stroke: var(--faint); stroke-width: 1; stroke-dasharray: 3 3; }
+  .ref-t { fill: var(--muted); font-size: 10.5px; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 0 0 4px 2px; }
+  .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  .outlook { margin-top: 28px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .outlook { grid-template-columns: 1fr; } }
+  .ol { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--faint); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .ol.good { border-left-color: var(--good); }
+  .ol.warn { border-left-color: var(--warn); }
+  .ol h4 { margin: 0 0 3px; font-size: 14px; }
+  .ol p { margin: 0; font-size: 13px; color: var(--muted); }
+
+  .section-h { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; margin: 30px 2px 12px; }
+  footer { margin-top: 30px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+  footer code { background: var(--surface-2); padding: 1.5px 6px; border-radius: 5px; font-size: 11.5px; }
+
+  .tt { position: fixed; pointer-events: none; z-index: 10; background: var(--ink); color: var(--bg);
+    padding: 6px 9px; border-radius: 7px; font-size: 12px; opacity: 0; transition: opacity .1s; white-space: nowrap;
+    font-variant-numeric: tabular-nums; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Marathon readiness</div>
+      <h1>Marquette 2026</h1>
+    </div>
+    <div class="count">
+      <div class="big num" id="c-weeks">–</div>
+      <div class="lbl" id="c-date">weeks to race day</div>
+    </div>
+    <button class="toggle" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </header>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="section-h">At a glance</div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="section-h">Trends</div>
+  <div class="grid" id="charts"></div>
+
+  <div class="section-h">Race-day outlook — honest read</div>
+  <div class="outlook" id="outlook"></div>
+
+  <footer id="footer"></footer>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script>
+const DATA = /*__DATA__*/;
+
+const TEAL = getVar('--teal'), CORAL = getVar('--coral'), GOLD = getVar('--gold');
+function getVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+// ---- theme toggle (cooperates with the host's own toggle) ----
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  renderAll();
+});
+
+// ---- helpers ----
+const M = {t:14, r:14, b:26, l:38}, W = 640, H = 300;
+const IW = W - M.l - M.r, IH = H - M.t - M.b;
+function lin(d0,d1,r0,r1){ const s=(d1-d0)||1; return v => r0 + (v-d0)/s*(r1-r0); }
+function ticks(min,max,n){ const span=(max-min)||1, step0=span/n, mag=Math.pow(10,Math.floor(Math.log10(step0)));
+  const norm=step0/mag, step=(norm>=5?5:norm>=2?2:1)*mag;
+  const out=[]; for(let t=Math.ceil(min/step)*step; t<=max+1e-9; t+=step) out.push(+t.toFixed(6)); return out; }
+function fmtPace(m){ const s=Math.round((m-Math.floor(m))*60); return Math.floor(m)+':'+String(s).padStart(2,'0'); }
+function monthName(m){ return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function svg(inner){ return `<svg viewBox="0 0 ${W} ${H}" role="img">${inner}</svg>`; }
+function yGrid(sc, tk, fmt){ return tk.map(t=>{ const y=sc(t);
+  return `<line class="grid-l" x1="${M.l}" y1="${y}" x2="${W-M.r}" y2="${y}"/>`
+       + `<text class="axnum" x="${M.l-6}" y="${y+3}" text-anchor="end">${fmt?fmt(t):t}</text>`; }).join(''); }
+
+// month labels for an ordinal set of ISO dates
+function xMonthLabels(dates, xOf){ let last=''; let out='';
+  dates.forEach((iso,i)=>{ const mo=iso.slice(0,7); if(mo!==last){ last=mo;
+    out += `<text class="ax" x="${xOf(i)}" y="${H-8}" text-anchor="middle">${monthName(+iso.slice(5,7))}</text>`; } });
+  return out; }
+
+// ---- charts ----
+function barsPlanActual(el){
+  const a=DATA.weekly_actual, p=DATA.weekly_plan;
+  const all=[...a.map(x=>x.d), ...p.map(x=>x.d)].sort();
+  const idx=Object.fromEntries(all.map((d,i)=>[d,i]));
+  const xOf=lin(0, all.length-1, M.l+14, W-M.r-14);
+  const bw=Math.min(16, IW/all.length*0.7);
+  const max=Math.max(...a.map(x=>x.mi), ...p.map(x=>x.mi))*1.1;
+  const y=lin(0,max,H-M.b,M.t), tk=ticks(0,max,4);
+  const today=DATA.meta.today;
+  let bars=a.map(x=>`<rect x="${xOf(idx[x.d])-bw/2}" y="${y(x.mi)}" width="${bw}" height="${H-M.b-y(x.mi)}" rx="2.5" fill="${TEAL}" data-tip="Week of ${x.d}: ${x.mi} mi"/>`).join('');
+  bars+=p.map(x=>`<rect x="${xOf(idx[x.d])-bw/2}" y="${y(x.mi)}" width="${bw}" height="${H-M.b-y(x.mi)}" rx="2.5" fill="url(#hatch)" stroke="${GOLD}" stroke-width="1.2" data-tip="Planned ${x.d}: ${x.mi} mi"/>`).join('');
+  const nx=xOf(idx[nearestIdx(all,today)]);
+  const nowline=`<line class="ref-l" x1="${nx}" y1="${M.t}" x2="${nx}" y2="${H-M.b}"/><text class="ref-t" x="${nx+3}" y="${M.t+10}">now</text>`;
+  const defs=`<defs><pattern id="hatch" width="5" height="5" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="${GOLD}" opacity="0.14"/><line x1="0" y1="0" x2="0" y2="5" stroke="${GOLD}" stroke-width="1.4"/></pattern></defs>`;
+  el.innerHTML = legend([['actual',TEAL],['planned',GOLD]]) + svg(defs+yGrid(y,tk)+bars+nowline+xMonthLabels(all,i=>xOf(i)));
+}
+function nearestIdx(arr, iso){ let best=0,bd=1e9; arr.forEach((d,i)=>{const diff=Math.abs(Date.parse(d)-Date.parse(iso)); if(diff<bd){bd=diff;best=i;}}); return arr[best]; }
+
+function lineTime(el, series, key, {fmt, ref, refLabel, raw, color}={}){
+  color=color||getVar('--accent');
+  const xs=series.map(s=>Date.parse(s.d));
+  const x=lin(Math.min(...xs),Math.max(...xs),M.l,W-M.r);
+  const vals=series.flatMap(s=>[s[key], raw?s.v:undefined]).filter(v=>v!=null);
+  let lo=Math.min(...vals), hi=Math.max(...vals); if(ref!=null){lo=Math.min(lo,ref);hi=Math.max(hi,ref);}
+  const pad=(hi-lo)*0.12||1; const y=lin(lo-pad,hi+pad,H-M.b,M.t), tk=ticks(lo-pad,hi+pad,4);
+  let out=yGrid(y,tk,fmt);
+  if(ref!=null){ out+=`<line class="ref-l" x1="${M.l}" y1="${y(ref)}" x2="${W-M.r}" y2="${y(ref)}"/><text class="ref-t" x="${M.l+2}" y="${y(ref)-4}">${refLabel||''}</text>`; }
+  if(raw){ out+=`<polyline fill="none" stroke="var(--faint)" stroke-width="1" opacity="0.55" points="${series.map(s=>x(Date.parse(s.d))+','+y(s.v)).join(' ')}"/>`; }
+  out+=`<polyline fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" points="${series.map(s=>x(Date.parse(s.d))+','+y(s[key])).join(' ')}"/>`;
+  const last=series[series.length-1];
+  out+=`<circle cx="${x(Date.parse(last.d))}" cy="${y(last[key])}" r="3.6" fill="${color}"/>`;
+  out+=`<text class="axnum" x="${x(Date.parse(last.d))-4}" y="${y(last[key])-8}" text-anchor="end" font-weight="700" fill="var(--ink)">${fmt?fmt(last[key]):last[key]}</text>`;
+  out+=monthAxisTime(series.map(s=>s.d), x);
+  el.innerHTML=svg(out);
+}
+function monthAxisTime(dates, x){ let last='',out=''; dates.forEach(iso=>{const mo=iso.slice(0,7); if(mo!==last){last=mo; const px=x(Date.parse(iso)); out+=`<text class="ax" x="${px}" y="${H-8}" text-anchor="middle">${monthName(+iso.slice(5,7))}</text>`;}}); return out; }
+
+function dotsTime(el, series, {ref,refLabel}={}){
+  const xs=series.map(s=>Date.parse(s.d));
+  const x=lin(Math.min(...xs),Math.max(...xs),M.l+6,W-M.r-6);
+  const hi=Math.max(...series.map(s=>s.mi), ref||0)*1.06, lo=Math.min(...series.map(s=>s.mi))*0.9;
+  const y=lin(lo,hi,H-M.b,M.t), tk=ticks(lo,hi,4);
+  let out=yGrid(y,tk);
+  if(ref){ out+=`<line class="ref-l" x1="${M.l}" y1="${y(ref)}" x2="${W-M.r}" y2="${y(ref)}"/><text class="ref-t" x="${M.l+2}" y="${y(ref)-4}">${refLabel}</text>`; }
+  out+=`<polyline fill="none" stroke="var(--line)" stroke-width="2" points="${series.map(s=>x(Date.parse(s.d))+','+y(s.mi)).join(' ')}"/>`;
+  out+=series.map(s=>`<circle cx="${x(Date.parse(s.d))}" cy="${y(s.mi)}" r="4" fill="${TEAL}" data-tip="${s.d}: ${s.mi} mi"/>`).join('');
+  out+=monthAxisTime(series.map(s=>s.d), x);
+  el.innerHTML=svg(out);
+}
+
+function stackedQuality(el){
+  const q=DATA.quality; const xOf=lin(0,q.length-1,M.l+12,W-M.r-12);
+  const bw=Math.min(15, IW/q.length*0.72);
+  const max=Math.max(...q.map(x=>x.mp+x.tempo),1)*1.12;
+  const y=lin(0,max,H-M.b,M.t), tk=ticks(0,max,4);
+  let bars=q.map((x,i)=>{ const cx=xOf(i); let s='';
+    if(x.mp){ s+=`<rect x="${cx-bw/2}" y="${y(x.mp)}" width="${bw}" height="${H-M.b-y(x.mp)}" rx="2" fill="${TEAL}" data-tip="${x.d}: ${x.mp} MP mi"/>`; }
+    if(x.tempo){ s+=`<rect x="${cx-bw/2}" y="${y(x.mp+x.tempo)}" width="${bw}" height="${y(x.mp)-y(x.mp+x.tempo)}" rx="2" fill="${CORAL}" data-tip="${x.d}: ${x.tempo} tempo mi"/>`; }
+    return s; }).join('');
+  el.innerHTML=legend([['marathon pace',TEAL],['tempo / faster',CORAL]])+svg(yGrid(y,tk)+bars+xMonthLabels(q.map(x=>x.d),i=>xOf(i)));
+}
+
+function decoupling(el){
+  const dc=DATA.decoupling; const xOf=lin(0,dc.length-1,M.l+16,W-M.r-16);
+  const bw=Math.min(20, IW/dc.length*0.62);
+  const hi=Math.max(6,...dc.map(x=>x.pct))*1.1, lo=Math.min(0,...dc.map(x=>x.pct));
+  const y=lin(lo,hi,H-M.b,M.t), tk=ticks(lo,hi,4), y0=y(0);
+  let out=yGrid(y,tk,t=>t+'%');
+  out+=`<line class="ref-l" x1="${M.l}" y1="${y(5)}" x2="${W-M.r}" y2="${y(5)}"/><text class="ref-t" x="${M.l+2}" y="${y(5)-4}">5% · good durability</text>`;
+  out+=`<line class="zero-l" x1="${M.l}" y1="${y0}" x2="${W-M.r}" y2="${y0}"/>`;
+  out+=dc.map((x,i)=>{ const cx=xOf(i), yy=y(x.pct), h=Math.abs(yy-y0), c=x.pct>5?CORAL:TEAL;
+    return `<rect x="${cx-bw/2}" y="${Math.min(yy,y0)}" width="${bw}" height="${h}" rx="2" fill="${c}" data-tip="${x.d}: ${x.pct>0?'+':''}${x.pct}% drift"/>`; }).join('');
+  out+=xMonthLabels(dc.map(x=>x.d),i=>xOf(i));
+  el.innerHTML=svg(out);
+}
+
+function scatterPaceHR(el){
+  const pts=DATA.pace_hr;
+  const px=pts.map(p=>p.pace), hy=pts.map(p=>p.hr);
+  const x=lin(Math.min(...px),Math.max(...px),M.l,W-M.r), y=lin(Math.min(...hy)-4,Math.max(...hy)+4,H-M.b,M.t);
+  const xtk=ticks(Math.min(...px),Math.max(...px),5), ytk=ticks(Math.min(...hy)-4,Math.max(...hy)+4,4);
+  let out=yGrid(y,ytk);
+  out+=xtk.map(t=>`<text class="ax" x="${x(t)}" y="${H-8}" text-anchor="middle">${fmtPace(t)}</text>`).join('');
+  out+=pts.map(p=>`<circle cx="${x(p.pace)}" cy="${y(p.hr)}" r="4" fill="${monthColor(p.m)}" fill-opacity="0.85" stroke="var(--surface)" stroke-width="0.8" data-tip="${p.d} · ${fmtPace(p.pace)}/mi · ${p.hr} bpm"/>`).join('');
+  el.innerHTML=monthLegend()+svg(out);
+}
+function monthColor(m){ // sequential teal ramp Feb(2)->Jul(7)
+  const t=Math.max(0,Math.min(1,(m-2)/5));
+  const a=[214,236,232], b=[13,90,80]; // light->dark teal
+  const c=a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function monthLegend(){ return `<div class="legend">`+[2,3,4,5,6,7].map(m=>`<span class="lg"><span class="sw" style="background:${monthColor(m)}"></span>${monthName(m)}</span>`).join('')+`</div>`; }
+
+function legend(items){ return `<div class="legend">`+items.map(([l,c])=>`<span class="lg"><span class="sw" style="background:${c}"></span>${l}</span>`).join('')+`</div>`; }
+
+function card(title, sub, id){ return `<div class="card"><h3>${title}</h3><div class="csub">${sub}</div><div id="${id}"></div></div>`; }
+
+function renderAll(){
+  const m=DATA.meta;
+  document.getElementById('c-weeks').textContent=Math.round(m.weeks_out);
+  document.getElementById('c-date').textContent=`weeks to Sat ${m.race_date}`;
+  document.getElementById('chips').innerHTML=
+    `<span class="chip">Goal <b>sub-${m.goal_time}</b> · ${m.goal_pace}/mi</span>`+
+    `<span class="chip">Debut marathon — <b>finish strong</b></span>`+
+    `<span class="chip">Source <b>Apple Health</b></span>`;
+  document.getElementById('kpis').innerHTML=DATA.kpis.map(k=>
+    `<div class="kpi ${k.tone||''}"><div class="k-label">${esc(k.label)}</div><div class="k-value num">${esc(k.value)}</div><div class="k-sub">${esc(k.sub)}</div></div>`).join('');
+  document.getElementById('charts').innerHTML=[
+    card('Weekly mileage','Plan vs. actual — the volume ramp ahead','ch-vol'),
+    card('Long-run progression','Building toward the planned 21-mi peak','ch-lr'),
+    card('Quality miles / week','Marathon-pace vs. tempo-or-faster','ch-q'),
+    card('Aerobic decoupling','Easy-mile pace:HR drift per long run · lower = more durable','ch-dc'),
+    card('Pace vs. heart rate','Outdoor steady runs · down-left over time = fitter','ch-ph'),
+    card('Body weight','14-day average · toward ~168 target','ch-wt'),
+    card('Resting HR','14-day average','ch-rhr'),
+    card('HRV','14-day average','ch-hrv'),
+  ].join('');
+  document.getElementById('outlook').innerHTML=DATA.outlook.map(([h,p,t])=>
+    `<div class="ol ${t}"><h4>${esc(h)}</h4><p>${esc(p)}</p></div>`).join('');
+  document.getElementById('footer').innerHTML=
+    `Generated ${m.generated} from Apple Health data through ${m.today}. Refresh: <code>uv run python -m pipeline.run_apple_health</code> then <code>uv run python -m analysis.build_dashboard_html</code>, and re-publish.`;
+
+  barsPlanActual(document.getElementById('ch-vol'));
+  dotsTime(document.getElementById('ch-lr'), DATA.long_runs, {ref:DATA.long_peak, refLabel:'planned peak 21'});
+  stackedQuality(document.getElementById('ch-q'));
+  decoupling(document.getElementById('ch-dc'));
+  scatterPaceHR(document.getElementById('ch-ph'));
+  lineTime(document.getElementById('ch-wt'), DATA.weight, 'r', {raw:true, ref:DATA.weight_target, refLabel:'~168 target', fmt:v=>Math.round(v)});
+  lineTime(document.getElementById('ch-rhr'), DATA.rhr, 'r', {raw:true, fmt:v=>Math.round(v)});
+  lineTime(document.getElementById('ch-hrv'), DATA.hrv, 'r', {raw:true, fmt:v=>Math.round(v)});
+}
+
+// ---- tooltip ----
+const tt=document.getElementById('tt');
+document.addEventListener('mousemove', e=>{
+  const t=e.target.closest && e.target.closest('[data-tip]');
+  if(t){ tt.textContent=t.getAttribute('data-tip'); tt.style.opacity=1;
+    tt.style.left=(e.clientX+12)+'px'; tt.style.top=(e.clientY+12)+'px'; }
+  else tt.style.opacity=0;
+});
+
+renderAll();
+</script>
