@@ -15,7 +15,9 @@ watch's sensor-fused estimate, so they stay accurate through the GPS dropouts
 that corrupt Strava's API splits/streams.
 """
 
+import shutil
 import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 
 import pyarrow as pa
@@ -23,7 +25,10 @@ import pyarrow.parquet as pq
 
 from pipeline.config import BRONZE_DIR, DATA_DIR
 
-EXPORT_XML = DATA_DIR / "apple_health" / "apple_health_export" / "export.xml"
+APPLE_HEALTH_DIR = DATA_DIR / "apple_health"
+EXPORT_ZIP = APPLE_HEALTH_DIR / "export.zip"
+EXTRACTED_DIR = APPLE_HEALTH_DIR / "apple_health_export"
+EXPORT_XML = EXTRACTED_DIR / "export.xml"
 AH_DIR = BRONZE_DIR / "apple_health"
 RECORDS_DIR = AH_DIR / "records"
 
@@ -162,7 +167,29 @@ def _parse_workout(elem: ET.Element, workout_id: int) -> tuple[dict, list[dict]]
     return row, events
 
 
+def _ensure_extracted() -> None:
+    """Unzip a freshly-dropped export.zip if it hasn't been extracted yet."""
+    if EXPORT_XML.exists():
+        return
+    if not EXPORT_ZIP.exists():
+        raise FileNotFoundError(
+            f"No export found. Drop an Apple Health export at {EXPORT_ZIP}"
+        )
+    with zipfile.ZipFile(EXPORT_ZIP) as zf:
+        zf.extractall(APPLE_HEALTH_DIR)
+
+
+def _cleanup_raw_export() -> None:
+    """Delete the raw export (~2.7GB extracted) now that bronze parquet has
+    the data we need (~60MB) - nothing reads the raw XML/GPX after this."""
+    if EXTRACTED_DIR.exists():
+        shutil.rmtree(EXTRACTED_DIR)
+    if EXPORT_ZIP.exists():
+        EXPORT_ZIP.unlink()
+
+
 def build_apple_health() -> None:
+    _ensure_extracted()
     writer = ChunkedWriter()
     workouts: list[dict] = []
     workout_events: list[dict] = []
@@ -204,6 +231,9 @@ def build_apple_health() -> None:
         AH_DIR / "workout_events.parquet", index=False
     )
     print(f"workouts: {len(workouts)} | events: {len(workout_events)} | records kept: {n_records}")
+
+    _cleanup_raw_export()
+    print(f"cleaned up raw export ({EXPORT_ZIP.name}, {EXTRACTED_DIR.name}/) - bronze parquet retained")
 
 
 if __name__ == "__main__":
