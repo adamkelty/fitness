@@ -5,8 +5,8 @@ _Last updated: 2026-07-23 · source: Apple Health_
 ## Goal
 
 - **Race:** Marquette, MI — Saturday 2026-09-05 (~6 weeks out)
-- **Primary:** sub-**3:15** (7:26/mi) · **Stretch:** sub-3:10 (7:15/mi) · **Floor:** sub-3:25 (7:49/mi)
-- **MP work target:** 7:35–7:55/mi @ HR 158–166 (true MP, not threshold)
+- **Goal:** finish, sub-**3:30** (8:01/mi). Debut marathon — the point is completing it; time goal is next year.
+- **MP work is trained at 7:45/mi** — faster than 3:30 race pace, so goal pace has built-in buffer.
 
 ## 2026 so far
 
@@ -80,6 +80,16 @@ _Last updated: 2026-07-23 · source: Apple Health_
 - **HRV:** 104 ms (7d) vs 111 (28d) — ↓ watch for fatigue
 - **VO2Max:** 55.2 (2026-07-22)
 - **HR recovery (1 min):** 44 bpm avg last 30d
+- **Weight:** 176 lb (down from 184 in Jan, −7 lb) — lighter = free pace; trending toward ~168 target
+
+## Race-day outlook (honest read)
+
+- **On track for sub-3:30, with margin.** The 20-miler is banked, 4 runs of 16+ mi, VO2Max 55, and MP work at 7:45/mi — 15s/mi faster than 8:01 goal pace, so the target has cushion.
+- **But that MP pace isn't 'free' yet:** those miles run at ~171 bpm (threshold, not aerobic MP) — so 7:45 for a full 26.2 is unproven. Sub-3:30 at ~8:00/mi sits at an easier effort and is the realistic play.
+- **Watch items:** volume is moderate (30–45 mpw — right-sized for this goal, not faster); fueling is untested at race distance; sleep ~6 h is the weak spot; HRV has drifted down slightly off the June peak. None are red flags for finishing.
+- **Bottom line:** for a debut where the goal is to finish strong, the data says you're in good shape and ahead of where sub-3:30 requires.
+
+![training dashboard](charts/dashboard.png)
 
 ## Recent runs
 
