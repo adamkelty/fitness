@@ -15,18 +15,23 @@ from pipeline.config import GOLD_DIR
 
 MARATHON_MI = 26.2188
 LONG_RUN_MI = 10  # threshold for what counts as a long run
+RACE_DATE = "2026-09-05"  # Marquette, Saturday of Labor Day weekend
 
-# Goal: finish under 3:30. Target race pace ~7:40 min/mi.
-GOAL_PACE_MIN_PER_MI = 7 + 40 / 60
-SUB_330_PACE_MIN_PER_MI = (3 * 60 + 30) / MARATHON_MI
+# Revised goal (per Jul 2026 training handoff): primary sub-3:15, stretch
+# sub-3:10, floor sub-3:25. Fitness markers (VO2Max ~54, corrected 5K ~20:30)
+# support the more aggressive target than the original 3:30.
+GOAL_PACE_MIN_PER_MI = (3 * 60 + 15) / MARATHON_MI  # ~7:27/mi
+STRETCH_PACE_MIN_PER_MI = (3 * 60 + 10) / MARATHON_MI  # ~7:15/mi
+FLOOR_PACE_MIN_PER_MI = (3 * 60 + 25) / MARATHON_MI  # ~7:50/mi
 
-# Marathon-pace work inside long runs: user currently targets ~7:50/mi.
-MP_TARGET_MIN_PER_MI = 7 + 50 / 60
-MP_BAND = 15 / 60
-MP_LOW, MP_HIGH = MP_TARGET_MIN_PER_MI - MP_BAND, MP_TARGET_MIN_PER_MI + MP_BAND
+# Marathon-pace work inside long runs. The handoff is explicit that MP must be
+# *true* MP (7:40-7:50 @ HR 158-166), not threshold surges - so the band is
+# tight and centered on 7:45, with faster miles labeled tempo/threshold.
+MP_TARGET_MIN_PER_MI = 7 + 45 / 60
+MP_LOW, MP_HIGH = 7 + 35 / 60, 7 + 55 / 60
 
-# Anything faster than this inside a run is tempo/threshold-quality work.
-TEMPO_CEILING = 7 + 30 / 60
+# Anything faster than the MP band inside a run is tempo/threshold work.
+TEMPO_CEILING = MP_LOW
 
 REPORT_PATH = Path(__file__).resolve().parent.parent / "docs" / "marathon-training.md"
 
@@ -109,10 +114,10 @@ def render(d: dict[str, pd.DataFrame]) -> str:
     daily = d["daily"]
     sleep = d["sleep"]
     today = runs["date"].max().date()
+    weeks_out = (pd.Timestamp(RACE_DATE).date() - today).days / 7
 
     total_mi = runs["distance_mi"].sum()
     longest = runs.loc[runs["distance_mi"].idxmax()]
-    goal_finish_min = GOAL_PACE_MIN_PER_MI * MARATHON_MI
 
     L = []
     L.append("# Marathon Training — Marquette 2026")
@@ -121,16 +126,15 @@ def render(d: dict[str, pd.DataFrame]) -> str:
     L.append("")
     L.append("## Goal")
     L.append("")
-    L.append("- **Race:** Marquette, MI — Labor Day weekend 2026")
-    L.append("- **Target:** finish under **3:30:00**")
+    L.append(f"- **Race:** Marquette, MI — Saturday {RACE_DATE} (~{weeks_out:.0f} weeks out)")
     L.append(
-        f"- **Goal race pace:** **{format_pace(GOAL_PACE_MIN_PER_MI)} min/mi** "
-        f"→ projected finish **{int(goal_finish_min // 60)}:{int(goal_finish_min % 60):02d}:"
-        f"{round((goal_finish_min % 1) * 60):02d}**"
+        f"- **Primary:** sub-**3:15** ({format_pace(GOAL_PACE_MIN_PER_MI)}/mi) · "
+        f"**Stretch:** sub-3:10 ({format_pace(STRETCH_PACE_MIN_PER_MI)}/mi) · "
+        f"**Floor:** sub-3:25 ({format_pace(FLOOR_PACE_MIN_PER_MI)}/mi)"
     )
     L.append(
-        f"- **Sub-3:30 ceiling:** must average faster than "
-        f"**{format_pace(SUB_330_PACE_MIN_PER_MI)} min/mi**"
+        f"- **MP work target:** {format_pace(MP_LOW)}–{format_pace(MP_HIGH)}/mi "
+        "@ HR 158–166 (true MP, not threshold)"
     )
     L.append("")
 

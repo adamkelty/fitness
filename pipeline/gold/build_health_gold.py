@@ -41,11 +41,11 @@ def build_fact_run(runs: pd.DataFrame) -> pd.DataFrame:
     fact = runs.copy()
     fact["date_key"] = _date_key(fact["local_date"])
     return fact[
-        ["workout_id", "date_key", "source_name", "indoor", "distance_mi",
-         "duration_min", "pace_min_per_mi", "avg_heartrate", "max_heartrate",
-         "avg_power_w", "avg_gct_ms", "avg_vert_osc_cm", "avg_stride_m",
-         "active_kcal", "steps", "elevation_gain_ft", "weather_temp_f",
-         "weather_humidity_pct"]
+        ["workout_id", "date_key", "source_name", "indoor", "n_segments",
+         "distance_mi", "duration_min", "pace_min_per_mi", "avg_heartrate",
+         "max_heartrate", "avg_power_w", "avg_gct_ms", "avg_vert_osc_cm",
+         "avg_stride_m", "active_kcal", "steps", "elevation_gain_ft",
+         "weather_temp_f", "weather_humidity_pct"]
     ]
 
 
