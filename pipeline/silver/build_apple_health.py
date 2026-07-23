@@ -10,6 +10,8 @@ Produces:
 - ah_daily.parquet        one row per local day of recovery/activity metrics
 """
 
+import json
+
 import numpy as np
 import pandas as pd
 
@@ -20,6 +22,19 @@ MILE_M = 1609.344
 
 # When two runs overlap in time, keep the higher-priority source.
 SOURCE_PRIORITY = ["Watch", "Nike Run Club", "Strava"]
+
+# Consecutive segments of one physical run (a mid-run pause or GPS drop splits
+# the watch recording) are stitched back together when the gap between them is
+# under this many minutes. A doubles day (AM/PM runs) is hours apart, so it
+# stays separate.
+STITCH_GAP_MIN = 35
+
+SUM_COLS = ["duration_min", "distance_mi", "active_kcal", "steps", "elevation_gain_ft"]
+WMEAN_COLS = [
+    "avg_heartrate", "avg_power_w", "avg_gct_ms", "avg_vert_osc_cm",
+    "avg_stride_m", "avg_mets",
+]
+FIRST_COLS = ["source_name", "indoor", "local_date", "weather_temp_f", "weather_humidity_pct"]
 
 
 def _priority(source: str) -> int:
@@ -74,7 +89,7 @@ def build_runs() -> pd.DataFrame:
     # Dedupe overlapping recordings of the same physical run across sources.
     runs = runs.sort_values(["start"]).reset_index(drop=True)
     runs["prio"] = runs["source_name"].map(_priority)
-    keep, last_end_by_run = [], None
+    keep = []
     for idx in runs.sort_values(["prio", "start"]).index:
         row = runs.loc[idx]
         overlaps = [
@@ -83,18 +98,75 @@ def build_runs() -> pd.DataFrame:
         ]
         if not overlaps:
             keep.append(idx)
-    runs = runs.loc[sorted(keep)]
+    runs = runs.loc[sorted(keep)].reset_index(drop=True)
 
-    cols = [
-        "workout_id", "source_name", "start", "end", "local_date", "indoor",
-        "duration_min", "distance_mi", "pace_min_per_mi", "avg_heartrate",
-        "max_heartrate", "avg_power_w", "avg_gct_ms", "avg_vert_osc_cm",
-        "avg_stride_m", "active_kcal", "steps", "avg_mets",
-        "elevation_gain_ft", "weather_temp_f", "weather_humidity_pct",
-    ]
-    out = runs[cols].reset_index(drop=True)
+    out = _stitch_segments(runs)
     out.to_parquet(SILVER_DIR / "ah_runs.parquet", index=False)
     return out
+
+
+def _wmean(values: pd.Series, weights: pd.Series) -> float:
+    mask = values.notna() & weights.notna() & (weights > 0)
+    if not mask.any():
+        return np.nan
+    return float(np.average(values[mask], weights=weights[mask]))
+
+
+def _stitch_segments(runs: pd.DataFrame) -> pd.DataFrame:
+    """Merge consecutive segments of the same physical run into one row.
+
+    Records the constituent workout ids and per-segment [start, end] spans as
+    JSON so the split reconstruction can gather samples across the whole run
+    and treat the inter-segment gaps as pauses.
+    """
+    runs = runs.sort_values("start").reset_index(drop=True)
+    group_id, groups = 0, []
+    prev = None
+    for _, row in runs.iterrows():
+        if prev is not None:
+            gap_min = (row["start"] - prev["end"]).total_seconds() / 60
+            same_run = (
+                row["source_name"] == prev["source_name"]
+                and row["local_date"] == prev["local_date"]
+                and gap_min <= STITCH_GAP_MIN
+            )
+            if not same_run:
+                group_id += 1
+        groups.append(group_id)
+        prev = row
+    runs["group"] = groups
+
+    merged = []
+    for _, seg in runs.groupby("group"):
+        seg = seg.sort_values("start")
+        row = {
+            "workout_id": int(seg["workout_id"].iloc[0]),
+            "segment_ids": json.dumps([int(x) for x in seg["workout_id"]]),
+            "segments": json.dumps(
+                [[s.isoformat(), e.isoformat()] for s, e in zip(seg["start"], seg["end"])]
+            ),
+            "n_segments": len(seg),
+            "start": seg["start"].min(),
+            "end": seg["end"].max(),
+            "max_heartrate": seg["max_heartrate"].max(),
+        }
+        for col in SUM_COLS:
+            row[col] = seg[col].sum(min_count=1)
+        for col in WMEAN_COLS:
+            row[col] = _wmean(seg[col], seg["duration_min"])
+        for col in FIRST_COLS:
+            row[col] = seg[col].iloc[0]
+        row["pace_min_per_mi"] = row["duration_min"] / row["distance_mi"]
+        merged.append(row)
+
+    cols = [
+        "workout_id", "segment_ids", "segments", "n_segments", "source_name",
+        "start", "end", "local_date", "indoor", "duration_min", "distance_mi",
+        "pace_min_per_mi", "avg_heartrate", "max_heartrate", "avg_power_w",
+        "avg_gct_ms", "avg_vert_osc_cm", "avg_stride_m", "active_kcal", "steps",
+        "avg_mets", "elevation_gain_ft", "weather_temp_f", "weather_humidity_pct",
+    ]
+    return pd.DataFrame(merged)[cols].sort_values("start").reset_index(drop=True)
 
 
 def _pause_intervals(events: pd.DataFrame, workout_id: int) -> list[tuple]:
@@ -134,21 +206,31 @@ def build_run_splits(runs: pd.DataFrame) -> pd.DataFrame:
 
     all_rows = []
     for _, run in runs.iterrows():
-        d = dist[(dist["end"] >= run["start"]) & (dist["end"] <= run["end"])]
-        if d.empty:
-            continue
-        # Multiple sources can log distance for one run (watch + phone);
-        # keep whichever recorded the most distance, i.e. the actual recorder.
-        by_source = d.groupby("source_name")["value"].sum()
-        d = d[d["source_name"] == by_source.idxmax()].sort_values("end")
+        segs = json.loads(run["segments"])
 
-        # Distance samples are in the workout's display unit; normalize to mi.
-        unit = d["unit"].iloc[0]
-        values = d["value"].to_numpy()
-        if unit == "km":
-            values = values * 0.621371
+        # Build one distance track across the run's segments. Multiple sources
+        # log distance for a run (watch GPS outdoors, GymKit belt on a
+        # treadmill, phone), and the best source differs per segment - so pick
+        # the largest-distance source *within each segment* and concatenate.
+        seg_values, seg_times = [], []
+        for seg_start, seg_end in segs:
+            s0 = pd.Timestamp(seg_start).tz_convert("UTC")
+            s1 = pd.Timestamp(seg_end).tz_convert("UTC")
+            d = dist[(dist["end"] >= s0) & (dist["end"] <= s1)]
+            if d.empty:
+                continue
+            best = d.groupby("source_name")["value"].sum().idxmax()
+            d = d[d["source_name"] == best].sort_values("end")
+            vals = d["value"].to_numpy()
+            if d["unit"].iloc[0] == "km":
+                vals = vals * 0.621371
+            seg_values.append(vals)
+            seg_times.append(d["end"].to_numpy())
+        if not seg_values:
+            continue
+        values = np.concatenate(seg_values)
+        times = np.concatenate(seg_times)
         cum_mi = values.cumsum()
-        times = d["end"].to_numpy()
 
         n_miles = int(cum_mi[-1])
         if n_miles == 0:
@@ -156,7 +238,16 @@ def build_run_splits(runs: pd.DataFrame) -> pd.DataFrame:
         boundaries = np.searchsorted(cum_mi, np.arange(1, n_miles + 1))
         boundary_times = pd.to_datetime(times[np.minimum(boundaries, len(times) - 1)], utc=True)
 
-        pauses = _pause_intervals(events, run["workout_id"])
+        # Pauses = each segment's own pause events, plus the gaps between
+        # stitched segments (so a mile spanning the gap isn't counted as moving).
+        pauses = []
+        for seg_id in json.loads(run["segment_ids"]):
+            pauses.extend(_pause_intervals(events, seg_id))
+        for (_, prev_end), (next_start, _) in zip(segs, segs[1:]):
+            pauses.append(
+                (pd.Timestamp(prev_end).tz_convert("UTC"), pd.Timestamp(next_start).tz_convert("UTC"))
+            )
+
         run_hr = hr[(hr["end"] >= run["start"]) & (hr["end"] <= run["end"])]
         run_pw = power[(power["end"] >= run["start"]) & (power["end"] <= run["end"])]
 

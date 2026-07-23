@@ -15,18 +15,21 @@ from pipeline.config import GOLD_DIR
 
 MARATHON_MI = 26.2188
 LONG_RUN_MI = 10  # threshold for what counts as a long run
+RACE_DATE = "2026-09-05"  # Marquette, Saturday of Labor Day weekend
 
-# Goal: finish under 3:30. Target race pace ~7:40 min/mi.
-GOAL_PACE_MIN_PER_MI = 7 + 40 / 60
-SUB_330_PACE_MIN_PER_MI = (3 * 60 + 30) / MARATHON_MI
+# Goal this year: finish, sub-3:30 (~8:00/mi). This is a debut marathon -
+# "say I did it" is the point; chasing a time goal is next year's build. The
+# fitness data suggests capable of faster, which just means 3:30 has margin.
+GOAL_TIME = "3:30"
+GOAL_PACE_MIN_PER_MI = (3 * 60 + 30) / MARATHON_MI  # ~8:01/mi
 
-# Marathon-pace work inside long runs: user currently targets ~7:50/mi.
-MP_TARGET_MIN_PER_MI = 7 + 50 / 60
-MP_BAND = 15 / 60
-MP_LOW, MP_HIGH = MP_TARGET_MIN_PER_MI - MP_BAND, MP_TARGET_MIN_PER_MI + MP_BAND
+# Marathon-pace work inside long runs is trained at ~7:45 (faster than the 3:30
+# race pace, which gives buffer). Band is tight to keep MP honest vs threshold.
+MP_TARGET_MIN_PER_MI = 7 + 45 / 60
+MP_LOW, MP_HIGH = 7 + 35 / 60, 7 + 55 / 60
 
-# Anything faster than this inside a run is tempo/threshold-quality work.
-TEMPO_CEILING = 7 + 30 / 60
+# Anything faster than the MP band inside a run is tempo/threshold work.
+TEMPO_CEILING = MP_LOW
 
 REPORT_PATH = Path(__file__).resolve().parent.parent / "docs" / "marathon-training.md"
 
@@ -109,10 +112,10 @@ def render(d: dict[str, pd.DataFrame]) -> str:
     daily = d["daily"]
     sleep = d["sleep"]
     today = runs["date"].max().date()
+    weeks_out = (pd.Timestamp(RACE_DATE).date() - today).days / 7
 
     total_mi = runs["distance_mi"].sum()
     longest = runs.loc[runs["distance_mi"].idxmax()]
-    goal_finish_min = GOAL_PACE_MIN_PER_MI * MARATHON_MI
 
     L = []
     L.append("# Marathon Training — Marquette 2026")
@@ -121,16 +124,14 @@ def render(d: dict[str, pd.DataFrame]) -> str:
     L.append("")
     L.append("## Goal")
     L.append("")
-    L.append("- **Race:** Marquette, MI — Labor Day weekend 2026")
-    L.append("- **Target:** finish under **3:30:00**")
+    L.append(f"- **Race:** Marquette, MI — Saturday {RACE_DATE} (~{weeks_out:.0f} weeks out)")
     L.append(
-        f"- **Goal race pace:** **{format_pace(GOAL_PACE_MIN_PER_MI)} min/mi** "
-        f"→ projected finish **{int(goal_finish_min // 60)}:{int(goal_finish_min % 60):02d}:"
-        f"{round((goal_finish_min % 1) * 60):02d}**"
+        f"- **Goal:** finish, sub-**{GOAL_TIME}** ({format_pace(GOAL_PACE_MIN_PER_MI)}/mi). "
+        "Debut marathon — the point is completing it; time goal is next year."
     )
     L.append(
-        f"- **Sub-3:30 ceiling:** must average faster than "
-        f"**{format_pace(SUB_330_PACE_MIN_PER_MI)} min/mi**"
+        f"- **MP work is trained at {format_pace(MP_TARGET_MIN_PER_MI)}/mi** — "
+        f"faster than {GOAL_TIME} race pace, so goal pace has built-in buffer."
     )
     L.append("")
 
@@ -230,6 +231,41 @@ def render(d: dict[str, pd.DataFrame]) -> str:
         hrr30 = hrr[hrr["date"].dt.date > today - timedelta(days=30)]
         if len(hrr30):
             L.append(f"- **HR recovery (1 min):** {hrr30['hr_recovery_1min'].mean():.0f} bpm avg last 30d")
+    wt = daily.dropna(subset=["body_mass_lb"])
+    if len(wt):
+        wt26 = wt[wt["date"].dt.year == 2026]
+        jan = wt26[wt26["date"].dt.month == 1]["body_mass_lb"].mean()
+        recent = wt26.tail(14)["body_mass_lb"].mean()
+        L.append(
+            f"- **Weight:** {recent:.0f} lb (down from {jan:.0f} in Jan, "
+            f"−{jan - recent:.0f} lb) — lighter = free pace; trending toward ~168 target"
+        )
+    L.append("")
+
+    L.append("## Race-day outlook (honest read)")
+    L.append("")
+    lr16 = (runs["distance_mi"] >= 16).sum()
+    mp = quality_miles(d["splits"], d["runs"])
+    mp = mp[(mp["date"].dt.year == 2026) & (mp["label"] == "MP")]
+    mp_hr = mp["avg_heartrate"].mean()
+    vo2_latest = vo2.iloc[-1]["vo2max"] if len(vo2) else float("nan")
+    for line in [
+        f"**On track for sub-{GOAL_TIME}, with margin.** The 20-miler is banked, "
+        f"{lr16} runs of 16+ mi, VO2Max {vo2_latest:.0f}, and MP work at "
+        f"{format_pace(MP_TARGET_MIN_PER_MI)}/mi — 15s/mi faster than "
+        f"{format_pace(GOAL_PACE_MIN_PER_MI)} goal pace, so the target has cushion.",
+        f"**But that MP pace isn't 'free' yet:** those miles run at ~{mp_hr:.0f} bpm "
+        "(threshold, not aerobic MP) — so 7:45 for a full 26.2 is unproven. "
+        f"Sub-{GOAL_TIME} at ~8:00/mi sits at an easier effort and is the realistic play.",
+        "**Watch items:** volume is moderate (30–45 mpw — right-sized for this goal, "
+        "not faster); fueling is untested at race distance; sleep ~6 h is the weak spot; "
+        "HRV has drifted down slightly off the June peak. None are red flags for finishing.",
+        "**Bottom line:** for a debut where the goal is to finish strong, the data says "
+        "you're in good shape and ahead of where sub-3:30 requires.",
+    ]:
+        L.append(f"- {line}")
+    L.append("")
+    L.append("![training dashboard](charts/dashboard.png)")
     L.append("")
 
     L.append("## Recent runs")

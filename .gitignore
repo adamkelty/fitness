@@ -14,3 +14,6 @@ data/
 
 # macOS
 .DS_Store
+
+# Local training handoff (not for the public repo)
+docs/marathon_training_handoff.md
